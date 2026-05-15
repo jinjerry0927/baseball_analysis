@@ -54,7 +54,9 @@ baseball_analysis/
 │   ├── features/     # 피처 엔지니어링
 │   ├── models/       # 학습·예측
 │   └── viz/          # 차트 함수
-├── app/              # Streamlit 앱
+├── app/
+│   ├── streamlit_app.py     # 팀 시즌 대시보드 (1982~2021)
+│   └── player_dashboard.py  # 선수 대시보드 (현재 시즌, KBO 공식)
 └── tests/
 ```
 
@@ -71,9 +73,14 @@ pip install -r requirements.txt
 # EDA 노트북
 jupyter notebook notebooks/1_eda.ipynb
 
-# (이후) Streamlit 앱 실행
+# 팀 시즌 대시보드 (Kaggle 데이터, 1982~2021)
 streamlit run app/streamlit_app.py
+
+# 선수 대시보드 (KBO 공식, 현재 시즌)
+streamlit run app/player_dashboard.py
 ```
+
+> 두 대시보드는 현재 별도 실행입니다. 다음 작업에서 `st.navigation()`으로 통합 예정.
 
 ## 📊 데이터 소스
 
