@@ -1,96 +1,111 @@
-# Baseball Analysis (KBO)
+# ⚾ KBO Baseball Analysis
 
-KBO 팀 데이터를 활용한 팀 평가, 팀 분석, 승패 예측 프로젝트.
+KBO(한국야구) 데이터를 활용한 **팀·선수 분석 대시보드**. 포트폴리오/학습용 MVP.
 
-> 포트폴리오/학습용 MVP. 흥미가 유지되면 졸업작품으로 확장. **실서비스 배포 계획 없음.**
+> 데이터 출처: Kaggle 팀 데이터셋 (1982~2021) + KBO 공식 기록실(현재 시즌). 실서비스 배포 계획 없음.
 
-## 🎯 Phase 1 목표 — 팀 단위 분석 (1982~2021)
+## ✨ 핵심 기능
 
-Kaggle KBO 팀 단위 데이터셋 (타격·투수, 40년치)을 활용.
+### 🏆 팀 시즌 대시보드 (1982~2021, 323개 팀-시즌)
+- OPS·ERA 백분위 기반 **종합 점수 + S/A/B/C/D 등급**
+- 정렬·필터(연도/팀/등급) + 행 클릭 시 상세
+- 시즌 캐릭터 자동 코멘트 ("타선의 힘으로 우승", "전 부문 압도" 등)
+- 비슷한 시즌 TOP 5 자동 매칭
 
-| 기능 | 설명 |
-|---|---|
-| 팀 시즌 카드 | 한 팀-시즌 선택 → OPS/ERA/승률 등 핵심 지표가 **KBO 역사 40년 내 백분위** 어디인지 표시 |
-| 팀 비교 | 두 팀-시즌의 타격+투수 핵심 지표 레이더 차트 |
-| 승패 예측 | 두 팀-시즌 선택 → 승률 예측 (로지스틱 회귀 베이스라인) |
+### 🏏 선수 대시보드 (현재 시즌, 30 타자 + 22 투수)
+- 정렬 가능한 리더보드 + 행 클릭 상세
+- **선수 비교 탭** — 두 선수 side-by-side, 지표별 🟢 우세 표시
+- **팀 필터** — 사이드바에서 팀 선택 시 양 탭 동시 필터링
+- 선수 캐릭터 자동 코멘트 ("거포형 슬러거", "에이스급 시즌" 등)
 
-## 📅 Phase 1 마일스톤 (4~5주)
-
-- [x] 1주차 — 환경 세팅, 범용 CSV 로더, Kaggle 팀 데이터 2종(타격/투수) 통합
-- [ ] 2주차 — EDA, 40년 추이 시각화, 피처 엔지니어링
-- [ ] 3주차 — 팀 시즌 카드 (Streamlit) + 백분위 계산
-- [ ] 4주차 — 팀 비교 화면 + 승패 예측 모델
-- [ ] 5주차 — UI 통합, Streamlit Cloud 배포, 회고
-
-## 📌 Phase 2 — 선수 단위 분석 (STATIZ 스크래퍼)
-
-Phase 1 마무리 후 진입.
-
-- [ ] STATIZ 스크래퍼 구현 (쿠키 주입 방식, `PoliteClient` 위에)
-- [ ] 선수 단위 데이터 수집 (최근 시즌 우선)
-- [ ] 선수 카드 (포지션별 백분위, WAR 등 사바메트릭스 포함)
-- [ ] 다년치 선수 성장 곡선
-- [ ] 모델 고도화 — 선발 투수/라인업까지 입력받는 예측
-
-## 🛠 기술 스택
-
-- **Python 3.11**
-- **데이터 처리**: pandas, numpy
-- **모델링**: scikit-learn (→ Phase 2에서 xgboost)
-- **시각화**: plotly, matplotlib
-- **UI**: Streamlit
-- **캐싱** (Phase 2 스크래퍼용): SQLite
-
-## 📁 프로젝트 구조
-
-```
-baseball_analysis/
-├── data/
-│   ├── raw/          # Kaggle CSV (gitignore, .gitkeep만 추적)
-│   └── cache/        # SQLite 캐시 (Phase 2용, gitignore)
-├── notebooks/        # EDA, 모델 실험
-├── src/
-│   ├── data/         # 로더·캐시·HTTP 클라이언트
-│   ├── features/     # 피처 엔지니어링
-│   ├── models/       # 학습·예측
-│   └── viz/          # 차트 함수
-├── app/
-│   ├── streamlit_app.py    # 통합 진입점 (st.navigation)
-│   └── views/
-│       ├── team.py         # 팀 시즌 (1982~2021)
-│       └── player.py       # 선수 (현재 시즌, KBO 공식)
-└── tests/
-```
-
-## 🚀 시작하기
+## 🚀 실행
 
 ```powershell
-# 가상환경 생성 및 활성화
+# 가상환경
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# 의존성 설치
+# 의존성
 pip install -r requirements.txt
 
-# EDA 노트북
-jupyter notebook notebooks/1_eda.ipynb
-
-# 통합 대시보드 (팀 시즌 + 선수, 사이드바에서 전환)
+# 통합 대시보드 (팀+선수, 사이드바 nav)
 streamlit run app/streamlit_app.py
+
+# EDA 노트북 (탐색용)
+jupyter notebook notebooks/1_eda.ipynb
 ```
 
-## 📊 데이터 소스
+## 🛠 기술 스택
 
-### Phase 1 — Kaggle (사용 중)
-Kaggle에서 받은 팀 단위 CSV 2개를 `data/raw/`에 둠:
-- `kbo_team_batting.csv` — 1982~2021 팀 시즌 타격 (323행)
-- `kbo_team_pitching.csv` — 1982~2021 팀 시즌 투수 (323행)
+- **Python 3.11** · pandas · numpy · scikit-learn
+- **데이터 수집**: requests + BeautifulSoup (KBO 공식 사이트, robots.txt 준수)
+- **UI**: Streamlit (`st.navigation` 멀티 페이지)
+- **시각화**: matplotlib · plotly
+- **캐싱**: SQLite (HTTP 응답 캐시, 1.5초 요청 딜레이)
+- **테스트**: pytest (12개 테스트, 전부 통과)
 
-### Phase 2 — STATIZ (예정)
-- **STATIZ** — KBO 사바메트릭스 (WAR, wRC+, FIP 등). 로그인 필요 → 쿠키 주입으로 인증.
-- 로컬 SQLite 캐시 + 1.5초 요청 딜레이 (`PoliteClient`).
-- 학습 목적 개인 사용에 한정, 수집 데이터 재배포 금지.
+## 📁 구조
+
+```
+baseball_analysis/
+├── app/
+│   ├── streamlit_app.py        # st.navigation 진입점
+│   └── views/
+│       ├── team.py             # 팀 시즌 view
+│       └── player.py           # 선수 view (3 tabs: 타자/투수/비교)
+├── src/
+│   ├── data/                   # 수집·캐시·HTTP 클라이언트·KBO 스크래퍼
+│   ├── features/               # team_season·player·analysis
+│   ├── models/                 # (예약)
+│   └── viz/                    # (예약)
+├── notebooks/
+│   └── 1_eda.ipynb             # 40년 KBO 추세 EDA
+├── data/raw/                   # Kaggle CSV (gitignored)
+├── scripts/                    # 일회성 검증/디버그 스크립트
+└── tests/                      # pytest
+```
+
+## 📊 데이터 출처
+
+| 소스 | 범위 | 비고 |
+|---|---|---|
+| Kaggle KBO Team Data | 1982~2021 팀 단위 (타격+투수) | 정적 CSV |
+| KBO 공식 기록실 (`koreabaseball.com/Record`) | 현재 시즌 선수 (페이지 1) | robots.txt 허용 경로 |
+
+## ⚠️ 알려진 제한 (KBO 사이트 anti-bot)
+
+KBO 사이트의 다음 동작은 ASP.NET WebForms POST(`__doPostBack`)로만 가능한데, 이 POST가 anti-bot으로 차단됨 (`requests` 및 Playwright 헤드리스 모두 시도):
+
+- ❌ **페이지네이션** (페이지 2+ 접근, 31~55위 선수)
+- ❌ **연도 변경** (1982~2025 과거 시즌 선수 데이터)
+- ❌ **팀/포지션 필터** (서버 사이드)
+
+다음 방법으로는 가능할 수 있음 (이번 프로젝트 범위 밖):
+- Playwright **headful 모드** + 사용자 인터랙션
+- `playwright-stealth` 플러그인 시도
+- 헤드리스 핑거프린팅 우회
+
+검증 시도 기록: `scripts/debug_pagination.py`, `scripts/test_playwright_pagination.py`.
+
+## 🧪 테스트
+
+```powershell
+pytest tests/ -v
+# 12 passed
+```
+
+- 캐시 round-trip / TTL 만료
+- 로더 컬럼 alias (한·영, UTF-8/CP949 인코딩)
+- 팀 시즌 merge·percentile·grade 로직
+- KBO HTML 파서 (한국어 디코딩, 숫자 컬럼 타이핑)
+
+## 🛣️ 가능한 확장 (향후)
+
+흥미가 다시 생기면:
+- Playwright headful + 수동 인터랙션으로 역사 데이터 확보
+- 자체 사바메트릭스 metric 시도 (WAR 근사)
+- 졸업작품용: 경기 단위 데이터 수집 → 실시간 승률 예측
 
 ## 라이선스
 
-학습용 개인 프로젝트.
+학습/포트폴리오 개인 프로젝트.
