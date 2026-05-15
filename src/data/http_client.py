@@ -48,3 +48,22 @@ class PoliteClient:
         resp.raise_for_status()
         cache.put(url, resp.content, resp.status_code)
         return FetchResult(url=url, content=resp.content, status=resp.status_code, from_cache=False)
+
+    def post(self, url: str, data: dict,
+             *, cache_key: Optional[str] = None,
+             max_age_seconds: Optional[float] = 7 * 24 * 3600) -> FetchResult:
+        """POST with rate-limit and cache. cache_key disambiguates POSTs to the same URL."""
+        key = cache_key or url
+        cached = cache.get(key, max_age_seconds=max_age_seconds)
+        if cached is not None:
+            return FetchResult(url=url, content=cached, status=200, from_cache=True)
+
+        elapsed = time.time() - self._last_request_at
+        if elapsed < self.delay_seconds:
+            time.sleep(self.delay_seconds - elapsed)
+
+        resp = self.session.post(url, data=data, timeout=30)
+        self._last_request_at = time.time()
+        resp.raise_for_status()
+        cache.put(key, resp.content, resp.status_code)
+        return FetchResult(url=url, content=resp.content, status=resp.status_code, from_cache=False)
