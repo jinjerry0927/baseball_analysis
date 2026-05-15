@@ -30,16 +30,22 @@ class RecordQuery:
     """기록실 쿼리 파라미터.
 
     필드 이름은 KBO 사이트의 form 필드와 일치시켜야 한다.
-    빈 문자열은 "전체" 의미. 발견되는 대로 채워나간다.
+    빈 문자열은 "전체"/"기본" 의미. 발견되는 대로 채워나간다.
+
+    sort 키는 엔드포인트별로 다르다 — 타자는 'HRA_RT'(타율) 등이 가능하지만
+    투수에 같은 값을 보내면 에러 페이지가 반환된다. 안전하게 비워두면 사이트
+    기본 정렬이 적용된다.
     """
-    sort: str = "HRA_RT"          # 기본: 타율 기준
+    sort: str = ""                # 비우면 기본 정렬 (안전)
     season: str = ""              # ""=현재시즌, "2024" 등
-    series: str = ""              # 정규시즌/포스트시즌 ("0"=정규?)
+    series: str = ""              # 정규시즌/포스트시즌
     team: str = ""                # 팀 필터 (코드값)
     position: str = ""            # 포지션 필터
 
     def to_params(self) -> dict[str, str]:
-        d = {"sort": self.sort}
+        d: dict[str, str] = {}
+        if self.sort:
+            d["sort"] = self.sort
         if self.season:
             d["season"] = self.season
         if self.series:
@@ -71,30 +77,49 @@ def fetch_pitcher_basic(query: RecordQuery | None = None,
     return c.get(_build_url(PITCHER_BASIC_PATH, q))
 
 
+def fetch_hitter_detail(query: RecordQuery | None = None,
+                        client: PoliteClient | None = None) -> FetchResult:
+    """타자 세부기록 (BB/SO/OBP/SLG/OPS 등) 한 페이지 받기."""
+    q = query or RecordQuery()
+    c = client or PoliteClient()
+    return c.get(_build_url(HITTER_DETAIL_PATH, q))
+
+
+def fetch_pitcher_detail(query: RecordQuery | None = None,
+                         client: PoliteClient | None = None) -> FetchResult:
+    """투수 세부기록 한 페이지 받기."""
+    q = query or RecordQuery()
+    c = client or PoliteClient()
+    return c.get(_build_url(PITCHER_DETAIL_PATH, q))
+
+
 # ─────────────────────── Parsing ───────────────────────
 
 # 한글/영문 → 캐노니컬 컬럼명 (loader.py와 일관성 유지)
 HEADER_CANONICAL: dict[str, str] = {
+    # 공통
     "순위": "rank",
     "선수명": "player",
     "팀명": "team",
-    "AVG": "avg",
     "G": "g",
-    "PA": "pa",
-    "AB": "ab",
     "R": "r",
     "H": "h",
+    "HR": "hr",
+    "BB": "bb",
+    "HBP": "hbp",
+    "SO": "so",
+    # 타자 기본
+    "AVG": "avg",
+    "PA": "pa",
+    "AB": "ab",
     "2B": "2b",
     "3B": "3b",
-    "HR": "hr",
     "TB": "tb",
     "RBI": "rbi",
     "SAC": "sac",
     "SF": "sf",
-    "BB": "bb",
+    # 타자 세부
     "IBB": "ibb",
-    "HBP": "hbp",
-    "SO": "so",
     "GDP": "gdp",
     "OBP": "obp",
     "SLG": "slg",
@@ -104,6 +129,25 @@ HEADER_CANONICAL: dict[str, str] = {
     "MH": "mh",
     "RISP": "risp",
     "PH-BA": "ph_ba",
+    # 투수 기본
+    "ERA": "era",
+    "W": "w",
+    "L": "l",
+    "SV": "sv",
+    "HLD": "hld",
+    "WPCT": "wpct",
+    "IP": "ip",
+    "ER": "er",
+    "WHIP": "whip",
+    # 투수 세부
+    "CG": "cg",       # 완투
+    "SHO": "sho",     # 완봉
+    "QS": "qs",       # 퀄리티스타트
+    "BSV": "bsv",     # 블론세이브
+    "TBF": "tbf",     # 상대타자
+    "NP": "np",       # 투구수
+    "WP": "wp",       # 폭투
+    "BK": "bk",       # 보크
 }
 
 
