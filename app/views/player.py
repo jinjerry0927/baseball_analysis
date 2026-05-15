@@ -1,50 +1,29 @@
-"""KBO 선수 대시보드 (2026 시즌 현재).
-
-타자/투수 탭, 정렬 가능한 표, 행 클릭 시 상세 패널.
-데이터는 KBO 공식 사이트 페이지 1 (타자 30 / 투수 22).
-"""
+"""선수 대시보드 — st.navigation에서 호출되는 view 함수."""
 from __future__ import annotations
-
-import sys
-from pathlib import Path
 
 import streamlit as st
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from src.features.player import (  # noqa: E402
+from src.features import analysis
+from src.features.player import (
     add_hitter_percentiles,
     add_pitcher_percentiles,
     load_hitters,
     load_pitchers,
 )
 
-st.set_page_config(page_title="선수 대시보드", page_icon="⚾", layout="wide")
-
 
 @st.cache_data(ttl=3600)
-def get_hitters():
+def _get_hitters():
     return add_hitter_percentiles(load_hitters())
 
 
 @st.cache_data(ttl=3600)
-def get_pitchers():
+def _get_pitchers():
     return add_pitcher_percentiles(load_pitchers())
 
 
-st.title("⚾ KBO 선수 대시보드 — 2026 시즌")
-st.caption(
-    "KBO 공식 사이트 (페이지 1) · 타자는 30경기 이상, 투수는 일정 이닝 이상 컷오프. "
-    "페이지네이션 미구현 — 페이지 2의 선수들은 아직 보이지 않음."
-)
-
-tab_h, tab_p = st.tabs(["🏏 타자 (30명)", "⚾ 투수 (22명)"])
-
-# ─────────────────────── 타자 탭 ───────────────────────
-with tab_h:
-    h = get_hitters()
+def _hitter_tab():
+    h = _get_hitters()
     sort_choice = st.selectbox(
         "정렬 기준",
         options=["ops", "avg", "hr", "rbi", "h", "bb", "obp", "slg"],
@@ -83,33 +62,36 @@ with tab_h:
     )
 
     sel_h = event_h.selection.rows  # type: ignore[attr-defined]
-    if sel_h:
-        row = h_sorted.iloc[sel_h[0]]
-        st.divider()
-        st.subheader(f"{row['player']} · {row['team']}")
+    if not sel_h:
+        return
+    row = h_sorted.iloc[sel_h[0]]
+    st.divider()
+    st.subheader(f"{row['player']} · {row['team']}")
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("AVG", f"{row['avg']:.3f}")
-        c2.metric("OPS", f"{row['ops']:.3f}")
-        c3.metric("HR", int(row["hr"]))
-        c4.metric("RBI", int(row["rbi"]))
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("AVG", f"{row['avg']:.3f}")
+    c2.metric("OPS", f"{row['ops']:.3f}")
+    c3.metric("HR", int(row["hr"]))
+    c4.metric("RBI", int(row["rbi"]))
 
-        st.progress(
-            min(row["ops_pctile"] / 100, 1.0),
-            text=f"OPS 백분위 — 30명 중 상위 {100 - row['ops_pctile']:.0f}%",
-        )
+    st.progress(
+        min(row["ops_pctile"] / 100, 1.0),
+        text=f"OPS 백분위 — 30명 중 상위 {100 - row['ops_pctile']:.0f}%",
+    )
 
-        st.markdown("##### 세부 기록")
-        detail_cols = ["pa", "ab", "r", "h", "2b", "3b", "hr", "tb", "rbi",
-                       "bb", "ibb", "hbp", "so", "gdp", "obp", "slg", "ops",
-                       "mh", "risp", "ph_ba"]
-        avail = [c for c in detail_cols if c in row.index]
-        detail_df = row[avail].to_frame().T.reset_index(drop=True)
-        st.dataframe(detail_df, hide_index=True, use_container_width=True)
+    st.success(f"📝 {analysis.hitter_caption(row)}")
 
-# ─────────────────────── 투수 탭 ───────────────────────
-with tab_p:
-    p = get_pitchers()
+    st.markdown("##### 세부 기록")
+    detail_cols = ["pa", "ab", "r", "h", "2b", "3b", "hr", "tb", "rbi",
+                   "bb", "ibb", "hbp", "so", "gdp", "obp", "slg", "ops",
+                   "mh", "risp", "ph_ba"]
+    avail = [c for c in detail_cols if c in row.index]
+    detail_df = row[avail].to_frame().T.reset_index(drop=True)
+    st.dataframe(detail_df, hide_index=True, use_container_width=True)
+
+
+def _pitcher_tab():
+    p = _get_pitchers()
     sort_choice = st.selectbox(
         "정렬 기준 (ERA·WHIP은 낮을수록 좋음)",
         options=["era", "whip", "so", "w", "sv", "wpct", "ip"],
@@ -149,26 +131,42 @@ with tab_p:
     )
 
     sel_p = event_p.selection.rows  # type: ignore[attr-defined]
-    if sel_p:
-        row = p_sorted.iloc[sel_p[0]]
-        st.divider()
-        st.subheader(f"{row['player']} · {row['team']}")
+    if not sel_p:
+        return
+    row = p_sorted.iloc[sel_p[0]]
+    st.divider()
+    st.subheader(f"{row['player']} · {row['team']}")
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("ERA", f"{row['era']:.2f}")
-        c2.metric("WHIP", f"{row['whip']:.2f}")
-        c3.metric("승-패", f"{int(row['w'])}-{int(row['l'])}")
-        c4.metric("탈삼진", int(row["so"]))
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("ERA", f"{row['era']:.2f}")
+    c2.metric("WHIP", f"{row['whip']:.2f}")
+    c3.metric("승-패", f"{int(row['w'])}-{int(row['l'])}")
+    c4.metric("탈삼진", int(row["so"]))
 
-        st.progress(
-            min(row["era_pctile"] / 100, 1.0),
-            text=f"ERA 백분위 — 22명 중 상위 {100 - row['era_pctile']:.0f}%",
-        )
+    st.progress(
+        min(row["era_pctile"] / 100, 1.0),
+        text=f"ERA 백분위 — 22명 중 상위 {100 - row['era_pctile']:.0f}%",
+    )
 
-        st.markdown("##### 세부 기록")
-        detail_cols = ["g", "w", "l", "sv", "hld", "ip", "h", "hr", "bb",
-                       "hbp", "so", "r", "er", "era", "whip", "cg", "sho",
-                       "qs", "bsv", "tbf", "np", "wp", "bk"]
-        avail = [c for c in detail_cols if c in row.index]
-        detail_df = row[avail].to_frame().T.reset_index(drop=True)
-        st.dataframe(detail_df, hide_index=True, use_container_width=True)
+    st.success(f"📝 {analysis.pitcher_caption(row)}")
+
+    st.markdown("##### 세부 기록")
+    detail_cols = ["g", "w", "l", "sv", "hld", "ip", "h", "hr", "bb",
+                   "hbp", "so", "r", "er", "era", "whip", "cg", "sho",
+                   "qs", "bsv", "tbf", "np", "wp", "bk"]
+    avail = [c for c in detail_cols if c in row.index]
+    detail_df = row[avail].to_frame().T.reset_index(drop=True)
+    st.dataframe(detail_df, hide_index=True, use_container_width=True)
+
+
+def player_view():
+    st.title("⚾ KBO 선수 대시보드 — 2026 시즌")
+    st.caption(
+        "KBO 공식 사이트 (페이지 1) · 타자는 30경기 이상, 투수는 일정 이닝 이상 컷오프. "
+        "페이지네이션 미구현 — 페이지 2의 선수들은 아직 보이지 않음."
+    )
+    tab_h, tab_p = st.tabs(["🏏 타자 (30명)", "⚾ 투수 (22명)"])
+    with tab_h:
+        _hitter_tab()
+    with tab_p:
+        _pitcher_tab()
