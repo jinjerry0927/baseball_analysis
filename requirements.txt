@@ -1,0 +1,25 @@
+# Core
+pandas>=2.2
+numpy>=1.26
+
+# Scraping
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+
+# Modeling
+scikit-learn>=1.4
+
+# Visualization
+plotly>=5.20
+matplotlib>=3.8
+
+# App
+streamlit>=1.32
+
+# Notebooks
+jupyter>=1.0
+ipykernel>=6.29
+
+# Dev
+pytest>=8.0
